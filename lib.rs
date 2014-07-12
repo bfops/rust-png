@@ -9,7 +9,6 @@
 
 #![crate_id = "github.com/mozilla-servo/rust-png#png:0.1"]
 #![crate_type = "lib"]
-#![crate_type = "dylib"]
 #![crate_type = "rlib"]
 
 extern crate libc;
