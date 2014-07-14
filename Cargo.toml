@@ -1,0 +1,11 @@
+[package]
+name = "png"
+version = "0.0.1"
+authors = [ "mozilla-servo" ]
+
+build = "./build.sh"
+
+[[lib]]
+name = "png"
+path = "lib.rs"
+crate_type = [ "dylib", "staticlib" ]
