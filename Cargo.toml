@@ -5,6 +5,6 @@ authors = [ "mozilla-servo" ]
 
 build = "./build.sh"
 
-[[lib]]
+[lib]
 name = "png"
 path = "lib.rs"
