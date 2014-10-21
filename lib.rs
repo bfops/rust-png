@@ -7,7 +7,6 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-#![crate_id = "github.com/mozilla-servo/rust-png#png:0.1"]
 #![crate_type = "lib"]
 #![crate_type = "rlib"]
 
@@ -59,7 +58,8 @@ pub extern fn read_data(png_ptr: *const ffi::png_struct, data: *mut u8, length: 
         let len = length as uint;
         slice::raw::mut_buf_as_slice(data, len, |buf| {
             let end_pos = std::cmp::min(image_data.data.len()-image_data.offset, len);
-            buf.copy_memory(image_data.data.slice(image_data.offset, image_data.offset+end_pos));
+            let src = image_data.data.slice(image_data.offset, image_data.offset+end_pos);
+            ptr::copy_memory(buf.as_mut_ptr(), src.as_ptr(), src.len());
             image_data.offset += end_pos;
         });
     }
@@ -270,7 +270,7 @@ mod test {
         };
 
         let mut buf = Vec::from_elem(1024, 0u8);
-        let count = reader.read(buf.mut_slice(0, 1024)).unwrap();
+        let count = reader.read(buf.slice_mut(0, 1024)).unwrap();
         assert!(count >= 8);
         unsafe {
             let res = ffi::png_sig_cmp(buf.as_ptr(), 0, 8);
