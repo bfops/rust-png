@@ -141,7 +141,7 @@ pub fn load_png_from_memory(image: &[u8]) -> Result<Image,String> {
             (ffi::COLOR_TYPE_PALETTE, 8) => (RGBA8, 4),
             (ffi::COLOR_TYPE_GRAY, 8) => (K8, 1),
             (ffi::COLOR_TYPE_GA, 8) => (KA8, 2),
-            _ => fail!("color type not supported"),
+            _ => panic!("color type not supported"),
         };
 
         let mut image_data = Vec::from_elem((width * height * pixel_width) as uint, 0u8);
@@ -171,7 +171,7 @@ pub extern fn write_data(png_ptr: *const ffi::png_struct, data: *const u8, lengt
         let writer: &mut &mut io::Writer = mem::transmute(io_ptr);
         slice::raw::buf_as_slice(data, length as uint, |buf| {
             match writer.write(buf) {
-                Err(e) => fail!("{}", e.desc),
+                Err(e) => panic!("{}", e.desc),
                 _ => {}
             }
         });
@@ -183,7 +183,7 @@ pub extern fn flush_data(png_ptr: *const ffi::png_struct) {
         let io_ptr = ffi::png_get_io_ptr(png_ptr);
         let writer: &mut &mut io::Writer = mem::transmute(io_ptr);
         match writer.flush() {
-            Err(e) => fail!("{}", e.desc),
+            Err(e) => panic!("{}", e.desc),
             _ => {}
         }
     }
@@ -229,7 +229,7 @@ pub fn store_png(img: &Image, path: &Path) -> Result<(),String> {
             RGBA8 => (8, ffi::COLOR_TYPE_RGBA, 4),
             K8 => (8, ffi::COLOR_TYPE_GRAY, 1),
             KA8 => (8, ffi::COLOR_TYPE_GA, 2),
-            _ => fail!("bad color type"),
+            _ => panic!("bad color type"),
         };
 
         ffi::png_set_IHDR(&*png_ptr, info_ptr, img.width, img.height, bit_depth, color_type,
@@ -266,7 +266,7 @@ mod test {
         let file = "test/servo-screenshot.png";
         let mut reader = match File::open_mode(&Path::new(file), io::Open, io::Read) {
             Ok(r) => r,
-            Err(e) => fail!(e.desc),
+            Err(e) => panic!(e.desc),
         };
 
         let mut buf = Vec::from_elem(1024, 0u8);
@@ -280,7 +280,7 @@ mod test {
 
     fn load_rgba8(file: &'static str, w: u32, h: u32) {
         match load_png(&Path::new(file)) {
-            Err(m) => fail!(m),
+            Err(m) => panic!(m),
             Ok(image) => {
                 assert_eq!(image.color_type, RGBA8);
                 assert_eq!(image.width, w);
@@ -300,15 +300,15 @@ mod test {
     fn bench_file_from_memory(file: &'static str, w: u32, h: u32, c: ColorType) {
         let mut reader = match File::open_mode(&Path::new(file), io::Open, io::Read) {
             Ok(r) => r,
-            Err(e) => fail!("could not open '{}': {}", file, e.desc)
+            Err(e) => panic!("could not open '{}': {}", file, e.desc)
         };
         let buf = match reader.read_to_end() {
             Ok(b) => b,
-            Err(e) => fail!(e)
+            Err(e) => panic!(e)
         };
         let bs = bench::benchmark(|b| b.iter(|| {
             match load_png_from_memory(buf.as_slice()) {
-                Err(m) => fail!(m),
+                Err(m) => panic!(m),
                 Ok(image) => {
                     assert_eq!(image.color_type, c);
                     assert_eq!(image.width, w);
