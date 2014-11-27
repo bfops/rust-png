@@ -56,12 +56,11 @@ pub extern fn read_data(png_ptr: *const ffi::png_struct, data: *mut u8, length: 
         let io_ptr = ffi::png_get_io_ptr(png_ptr);
         let image_data: &mut ImageData = mem::transmute(io_ptr);
         let len = length as uint;
-        slice::raw::mut_buf_as_slice(data, len, |buf| {
-            let end_pos = std::cmp::min(image_data.data.len()-image_data.offset, len);
-            let src = image_data.data.slice(image_data.offset, image_data.offset+end_pos);
-            ptr::copy_memory(buf.as_mut_ptr(), src.as_ptr(), src.len());
-            image_data.offset += end_pos;
-        });
+        let buf = slice::from_raw_mut_buf(&data, len);
+        let end_pos = std::cmp::min(image_data.data.len()-image_data.offset, len);
+        let src = image_data.data.slice(image_data.offset, image_data.offset+end_pos);
+        ptr::copy_memory(buf.as_mut_ptr(), src.as_ptr(), src.len());
+        image_data.offset += end_pos;
     }
 }
 
@@ -138,9 +137,9 @@ pub fn load_png_from_memory(image: &[u8]) -> Result<Image,String> {
         let (color_type, pixel_width) = match (updated_color_type as c_int, updated_bit_depth) {
             (ffi::COLOR_TYPE_RGB, 8) |
             (ffi::COLOR_TYPE_RGBA, 8) |
-            (ffi::COLOR_TYPE_PALETTE, 8) => (RGBA8, 4),
-            (ffi::COLOR_TYPE_GRAY, 8) => (K8, 1),
-            (ffi::COLOR_TYPE_GA, 8) => (KA8, 2),
+            (ffi::COLOR_TYPE_PALETTE, 8) => (ColorType::RGBA8, 4),
+            (ffi::COLOR_TYPE_GRAY, 8) => (ColorType::K8, 1),
+            (ffi::COLOR_TYPE_GA, 8) => (ColorType::KA8, 2),
             _ => panic!("color type not supported"),
         };
 
@@ -169,12 +168,11 @@ pub extern fn write_data(png_ptr: *const ffi::png_struct, data: *const u8, lengt
     unsafe {
         let io_ptr = ffi::png_get_io_ptr(png_ptr);
         let writer: &mut &mut io::Writer = mem::transmute(io_ptr);
-        slice::raw::buf_as_slice(data, length as uint, |buf| {
-            match writer.write(buf) {
-                Err(e) => panic!("{}", e.desc),
-                _ => {}
-            }
-        });
+        let buf = slice::from_raw_buf(&data, length as uint);
+        match writer.write(buf) {
+            Err(e) => panic!("{}", e.desc),
+            _ => {}
+        }
     }
 }
 
@@ -225,10 +223,10 @@ pub fn store_png(img: &Image, path: &Path) -> Result<(),String> {
         ffi::png_set_write_fn(png_ptr, mem::transmute(writer), write_data, flush_data);
 
         let (bit_depth, color_type, pixel_width) = match img.color_type {
-            RGB8 => (8, ffi::COLOR_TYPE_RGB, 3),
-            RGBA8 => (8, ffi::COLOR_TYPE_RGBA, 4),
-            K8 => (8, ffi::COLOR_TYPE_GRAY, 1),
-            KA8 => (8, ffi::COLOR_TYPE_GA, 2),
+            ColorType::RGB8 => (8, ffi::COLOR_TYPE_RGB, 3),
+            ColorType::RGBA8 => (8, ffi::COLOR_TYPE_RGBA, 4),
+            ColorType::K8 => (8, ffi::COLOR_TYPE_GRAY, 1),
+            ColorType::KA8 => (8, ffi::COLOR_TYPE_GA, 2),
             _ => panic!("bad color type"),
         };
 
