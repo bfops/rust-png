@@ -9,6 +9,7 @@
 
 #![crate_type = "lib"]
 #![crate_type = "rlib"]
+#![feature(slicing_syntax)]
 
 extern crate libc;
 
@@ -18,10 +19,11 @@ use std::io;
 use std::io::File;
 use std::ptr;
 use std::slice;
+use std::iter;
 
 pub mod ffi;
 
-#[deriving(PartialEq,Eq,Show)]
+#[derive(PartialEq,Eq,Show)]
 pub enum ColorType {
     K1, K2, K4, K8, K16,
     KA8, KA16,
@@ -143,11 +145,11 @@ pub fn load_png_from_memory(image: &[u8]) -> Result<Image,String> {
             _ => panic!("color type not supported"),
         };
 
-        let mut image_data = Vec::from_elem((width * height * pixel_width) as uint, 0u8);
+        let mut image_data : Vec<u8> = iter::repeat(0u8).take((width * height * pixel_width) as uint).collect();
         let image_buf = image_data.as_mut_ptr();
-        let row_pointers: Vec<*mut u8> = Vec::from_fn(height as uint, |idx| {
+        let row_pointers: Vec<*mut u8> = (0..height as uint).map(|idx| {
             image_buf.offset((((width * pixel_width) as uint) * idx) as int)
-        });
+        }).collect();
 
         ffi::png_read_image(png_ptr, row_pointers.as_ptr());
 
@@ -234,9 +236,9 @@ pub fn store_png(img: &Image, path: &Path) -> Result<(),String> {
                           ffi::INTERLACE_NONE, ffi::COMPRESSION_TYPE_DEFAULT, ffi::FILTER_NONE);
 
         let image_buf = img.pixels.as_ptr();
-        let row_pointers: Vec<*const u8> = Vec::from_fn(img.height as uint, |idx| {
+        let row_pointers: Vec<*const u8> = (0..img.height as uint).map(|idx| {
             image_buf.offset((((img.width * pixel_width) as uint) * idx) as int)
-        });
+        }).collect();
         ffi::png_set_rows(&*png_ptr, info_ptr, row_pointers.as_ptr());
 
         ffi::png_write_png(png_ptr, info_ptr, ffi::TRANSFORM_IDENTITY, ptr::null());
